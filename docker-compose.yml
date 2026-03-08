@@ -1,0 +1,46 @@
+services:
+  api:
+    build: .
+    ports:
+      - "${PORT:-3010}:3010"
+    env_file: .env
+    environment:
+      - PORT=3010
+      - NODE_ENV
+      - API_KEY
+      - CORS_ORIGIN
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD
+      - PROXY_HEALTHCHECK_TIMEOUT_SECONDS
+      - WORKER_CONCURRENCY
+      - SYNC_MAX_BATCH
+    depends_on:
+      - redis
+    command: node server.js
+
+  worker:
+    build: .
+    env_file: .env
+    environment:
+      - NODE_ENV
+      - API_KEY
+      - CORS_ORIGIN
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD
+      - PROXY_HEALTHCHECK_TIMEOUT_SECONDS
+      - WORKER_CONCURRENCY
+      - SYNC_MAX_BATCH
+    depends_on:
+      - redis
+    command: node worker.js
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    env_file: .env
+    environment:
+      - REDIS_PASSWORD
+    command: ["sh", "-c", "if [ -n \"$$REDIS_PASSWORD\" ]; then exec redis-server --requirepass \"$$REDIS_PASSWORD\"; else exec redis-server; fi"]

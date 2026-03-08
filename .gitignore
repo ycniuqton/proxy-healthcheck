@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Env (secrets)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml
+
+# Optional
+coverage/
+.nyc_output/
+dist/
+build/
