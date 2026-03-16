@@ -66,6 +66,31 @@ function apiKeyMiddleware(req, res, next) {
 
 router.use(apiKeyMiddleware);
 
+// ─── GET /docs.md (API docs index) ────────────────────────────────────────────
+router.get('/docs.md', (req, res) => {
+  const base = `${req.protocol}://${req.get('host')}`;
+  res.type('text/markdown').send(
+    [
+      '# API docs index',
+      '',
+      'Short index of available endpoint docs. For full details, open each `.md` URL.',
+      '',
+      '- **GET /health.md** — Health and queue status response shape.',
+      '- **GET /check/sync.md** — How to call `POST /check/sync` (single + batch), request/response schema.',
+      '- **GET /check/async.md** — How to call `POST /check/async`, request body and `202` response.',
+      '- **GET /task/{task_id}.md** — Async task result format (statuses, results items).',
+      '',
+      'Base URL example:',
+      '',
+      `- \`${base}/health.md\``,
+      `- \`${base}/check/sync.md\``,
+      `- \`${base}/check/async.md\``,
+      `- \`${base}/task/<task_id>.md\``,
+      '',
+    ].join('\n')
+  );
+});
+
 // ─── GET /health ──────────────────────────────────────────────────────────────
 router.get('/health', async (req, res) => {
   try {
