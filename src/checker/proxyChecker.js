@@ -61,6 +61,33 @@ function fetchViaProxy(agent, checkUrl, timeoutMs) {
 }
 
 /**
+ * Return true if value is a valid IPv4 address.
+ */
+function isValidIPv4(value) {
+  if (typeof value !== 'string') return false;
+  const parts = value.trim().split('.');
+  if (parts.length !== 4) return false;
+  return parts.every((part) => {
+    if (!/^[0-9]+$/.test(part)) return false;
+    const n = Number(part);
+    return n >= 0 && n <= 255 && String(n) === String(Number(part));
+  });
+}
+
+/**
+ * Return true if value is a valid IPv6 address (simplified check).
+ * Accepts compressed forms like \"2001:db8::1\".
+ */
+function isValidIPv6(value) {
+  if (typeof value !== 'string') return false;
+  const v = value.trim();
+  // must contain at least one colon and only hex, colon, or dot characters
+  if (!v.includes(':')) return false;
+  if (!/^[0-9a-fA-F:.]+$/.test(v)) return false;
+  return true;
+}
+
+/**
  * Check a single proxy.
  *
  * @param {object} opts
@@ -111,6 +138,15 @@ async function checkProxy({
   try {
     const exitIP = await fetchViaProxy(agent, checkUrl, timeoutMs);
     const latencyMs = Date.now() - start;
+    const validIp = isValidIPv4(exitIP) || isValidIPv6(exitIP);
+    if (!validIp) {
+      return {
+        online: false,
+        exitIP,
+        latencyMs,
+        error: 'Non-IP response from proxy',
+      };
+    }
     const hasExpected =
       expectedIP &&
       expectedIP.trim() !== '' &&
