@@ -85,6 +85,36 @@ router.get('/health', async (req, res) => {
   }
 });
 
+// ─── GET /health.md (self-doc) ───────────────────────────────────────────────
+router.get('/health.md', (req, res) => {
+  res.type('text/markdown').send(
+    [
+      '# GET /health',
+      '',
+      '- **Method**: GET',
+      '- **Auth**: optional `x-api-key` when `API_KEY` is set',
+      '',
+      '**Response 200**',
+      '',
+      '```json',
+      '{',
+      '  "status": "ok",',
+      '  "queue": {',
+      '    "waiting": 0,',
+      '    "active": 0,',
+      '    "completed": 0,',
+      '    "failed": 0',
+      '  }',
+      '}',
+      '```',
+      '',
+      '- **status**: service status string.',
+      '- **queue.waiting/active/completed/failed**: BullMQ job counts.',
+      '',
+    ].join('\n')
+  );
+});
+
 // ─── POST /check/sync ─────────────────────────────────────────────────────────
 router.post('/check/sync', async (req, res) => {
   const body = req.body;
@@ -131,6 +161,57 @@ router.post('/check/sync', async (req, res) => {
   return res.json(result);
 });
 
+// ─── GET /check/sync.md (self-doc) ───────────────────────────────────────────
+router.get('/check/sync.md', (req, res) => {
+  res.type('text/markdown').send(
+    [
+      '# POST /check/sync',
+      '',
+      '- **Method**: POST',
+      '- **Auth**: optional `x-api-key` when `API_KEY` is set',
+      '',
+      'Single proxy body:',
+      '',
+      '```json',
+      '{',
+      '  "host": "proxy.example.com",',
+      '  "port": 8080,',
+      '  "username": "user",',
+      '  "password": "pass",',
+      '  "proxyType": "http",',
+      '  "expectedIP": "203.0.113.1",',
+      '  "isIPv6": false',
+      '}',
+      '```',
+      '',
+      'Batch body (≤ `SYNC_MAX_BATCH`):',
+      '',
+      '```json',
+      '{',
+      '  "proxies": [ { "host": "...", "port": 8080, "proxyType": "http" } ]',
+      '}',
+      '```',
+      '',
+      '**Response 200 (single)**',
+      '',
+      '```json',
+      '{',
+      '  "online": true,',
+      '  "exitIP": "203.0.113.1",',
+      '  "latencyMs": 120,',
+      '  "error": null',
+      '}',
+      '```',
+      '',
+      '- **online**: boolean (false if response is not a valid IPv4/IPv6 or check failed).',
+      '- **exitIP**: detected exit IP string or raw non-IP response for debugging.',
+      '- **latencyMs**: check time in milliseconds.',
+      '- **error**: short error message when `online` is false.',
+      '',
+    ].join('\n')
+  );
+});
+
 // ─── POST /check/async ────────────────────────────────────────────────────────
 router.post('/check/async', async (req, res) => {
   const { proxies } = req.body;
@@ -173,6 +254,48 @@ router.post('/check/async', async (req, res) => {
   return res.status(202).json({ task_id, total });
 });
 
+// ─── GET /check/async.md (self-doc) ──────────────────────────────────────────
+router.get('/check/async.md', (req, res) => {
+  res.type('text/markdown').send(
+    [
+      '# POST /check/async',
+      '',
+      '- **Method**: POST',
+      '- **Auth**: optional `x-api-key` when `API_KEY` is set',
+      '',
+      'Body (non-empty batch):',
+      '',
+      '```json',
+      '{',
+      '  "proxies": [',
+      '    {',
+      '      "host": "proxy.example.com",',
+      '      "port": 8080,',
+      '      "username": "user",',
+      '      "password": "pass",',
+      '      "proxyType": "http",',
+      '      "expectedIP": "203.0.113.1",',
+      '      "isIPv6": false',
+      '    }',
+      '  ]',
+      '}',
+      '```',
+      '',
+      '**Response 202**',
+      '',
+      '```json',
+      '{',
+      '  "task_id": "uuid-string",',
+      '  "total": 1',
+      '}',
+      '```',
+      '',
+      '- Use `GET /task/{task_id}` or `/task/{task_id}.md` for results.',
+      '',
+    ].join('\n')
+  );
+});
+
 // ─── GET /task/:task_id ───────────────────────────────────────────────────────
 router.get('/task/:task_id', async (req, res) => {
   const { task_id } = req.params;
@@ -181,6 +304,51 @@ router.get('/task/:task_id', async (req, res) => {
     return res.status(404).json({ statusCode: 404, message: 'Task not found or expired' });
   }
   return res.json(task);
+});
+
+// ─── GET /task/:task_id.md (self-doc for async result shape) ─────────────────
+router.get('/task/:task_id.md', async (req, res) => {
+  const { task_id } = req.params;
+  res.type('text/markdown').send(
+    [
+      `# GET /task/${task_id}`,
+      '',
+      '- **Method**: GET',
+      '- **Auth**: optional `x-api-key` when `API_KEY` is set',
+      '',
+      '**Response 200 (example)**',
+      '',
+      '```json',
+      '{',
+      '  "id": "uuid-string",',
+      '  "status": "completed",',
+      '  "total": 2,',
+      '  "done": 2,',
+      '  "createdAt": "2026-03-16T19:00:00.000Z",',
+      '  "results": [',
+      '    {',
+      '      "index": 0,',
+      '      "online": true,',
+      '      "exitIP": "203.0.113.1",',
+      '      "latencyMs": 120,',
+      '      "error": null',
+      '    },',
+      '    {',
+      '      "index": 1,',
+      '      "online": false,',
+      '      "exitIP": "<html>...</html>",',
+      '      "latencyMs": 30,',
+      '      "error": "Non-IP response from proxy"',
+      '    }',
+      '  ]',
+      '}',
+      '```',
+      '',
+      '- **status**: `"pending"` \\| `"processing"` \\| `"completed"` \\| `"failed"`.',
+      '- **results[index].online**: false if check failed or response was not a valid IPv4/IPv6.',
+      '',
+    ].join('\n')
+  );
 });
 
 module.exports = router;
